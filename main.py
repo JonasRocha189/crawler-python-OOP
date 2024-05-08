@@ -1,15 +1,20 @@
+# Libraries used to crawl and parse the data
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import pandas as pd
 
+# Custom the Python recursion limit
 from sys import setrecursionlimit
 setrecursionlimit(100000)
 
 class Crawler:
 
   def __init__(self):
+    # Custom the crawler 
     self.baseURL = 'https://www.bumper.com'
+    self.limit_pages = 100
+    self.limit_save = 10
 
     self.urls = set()
     self.urls_not_crawled = set()
@@ -17,10 +22,15 @@ class Crawler:
     self.urls_error = []
 
     self.count = 0
+    self.count_save = 1
 
     self.start()
 
 
+  ##
+  # Check if URL is internal or external, relative or absolute and remove params and fragments
+  # Standardize the URL's by the baseURL seted
+  #
   #### TODO: Refact methods remove query and fragments
   def checkUrl(self, url):   
 
@@ -73,7 +83,9 @@ class Crawler:
 
       self.urls_not_crawled.add(url)        
 
-
+  ##
+  # Crawl the URL and get the links for recursion
+  #
   def crawl(self, url):   
 
     # print(f"URL to be crawled: {url}")
@@ -113,52 +125,93 @@ class Crawler:
           self.checkUrl(link.attrs['href'])
 
       
-      print(f"\n\nURL crawled: {url} \nCounter: {self.count}")
+      print(f"Counter: {self.count} - URL crawled: {url}")
       self.urls_crawled.append(url)  
     except:
-      self.urls_error.add(url)
+      self.urls_error.append(url)
       print(f"Error crawling page: {url}")
     
     self.count += 1    
     self.start()
 
-    
-
-
+  ##
+  # Start the script and control the flux
+  #
   def start(self):
 
     if len(self.urls) == 0: 
       self.urls.add(self.baseURL)
       # self.crawl(self.baseURL) ### check the homepage
+
+    # Output 
+    if self.count > self.limit_save and self.count > self.count_save * self.limit_save:
+      # print(f"self_count:{self.count} - limit_save:{self.limit_save} - count_save: {self.count_save} ") 
+
+      try:
+        if self.count_save == 1:
+          urls_crawled = pd.DataFrame(self.urls_crawled[(self.count_save - 1) * self.limit_save + 1 : self.count])  
+        else:
+          urls_crawled = pd.DataFrame(self.urls_crawled[(self.count_save - 1) * self.limit_save + 1 : self.count]) 
+        print(f"{(self.count_save - 1) * self.limit_save + 1} : {self.count}")
+        print("DATAFRAME - SELECTION")
+        print(self.urls_crawled[(self.count_save - 1) * self.limit_save : self.count])
+        print("\n")
+
+        urls_crawled.to_csv(f'output/crawled-{self.count_save}.csv', index=False)
+        print(f"URL's crawled saved - Total: {len(urls_crawled)} - Count_save: {self.count_save}")
+
+        self.count_save += 1
       
-    if self.count >= 1000:
+      except Exception as error:
+        print(f"Error saving files: {error}")
+
+      
+    # End of the Crawler
+    if self.count >= self.limit_pages:
       print("///////////////////////////")
       print("End of the crawler")
 
       ### Check Crawled URL's
-      print(f"\n\nURLS Crawled({len(self.urls_crawled)}):")
-      for l in self.urls_crawled:
-        print(l)
+      # print(f"\n\nURLS Crawled({len(self.urls_crawled)}):")
+      # for l in self.urls_crawled:
+      #   print(l)
 
-      print(f"\n\nURLS NOT CRAWLED ({len(self.urls_not_crawled)}):")
-      for n in self.urls_not_crawled:
-        print(n)  
+      # print(f"\n\nURLS NOT CRAWLED ({len(self.urls_not_crawled)}):")
+      # for n in self.urls_not_crawled:
+      #   print(n)  
 
-      print(f"\n\nLINKS NOT FOUND ({len(self.urls)}):")
-      for n in self.urls:
-        print(n) 
+      # print(f"\n\nLINKS NOT FOUND ({len(self.urls)}):")
+      # for n in self.urls:
+      #   print(n) 
 
-      print(f"\n\nURL's WITH ERROR ({len(self.urls_error)}):")
-      for n in self.urls:
-        print(n)  
+      # print(f"\n\nURL's WITH ERROR ({len(self.urls_error)}):")
+      # for n in self.urls:
+      #   print(n)  
+
+      # Output
+      try:
+        urls_crawled = pd.DataFrame(self.urls_crawled)  
+        urls_crawled.to_csv('output/crawled-total.csv', index=False)
+        print(f"URL's crawled saved - Total: {len(urls_crawled)}")
+
+        urls_not_crawled = pd.DataFrame(self.urls_not_crawled)  
+        urls_not_crawled.to_csv('output/not_crawled-total.csv', index=False)
+        print(f"URL's NOT crawled saved - Total: {len(urls_not_crawled)}")
+
+        urls_error = pd.DataFrame(self.urls_error)  
+        urls_error.to_csv('output/errors-total.csv', index=False)
+        print(f"URL's with ERROR saved - Total: {len(urls_error)}")
+
+        self.count_save += 1
+      
+      except Exception as error:
+        print(f"Error saving files: {error}")
 
     else:
       newUrl = list(self.urls)
       self.crawl(newUrl[self.count])
 
-
-    
-
+  
 
 if __name__ == "__main__":
     Crawler()
