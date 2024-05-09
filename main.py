@@ -21,6 +21,8 @@ class Crawler:
     self.urls_crawled = []
     self.urls_error = []
 
+    self.output = []
+
     self.count = 0
     self.count_save = 1
 
@@ -92,21 +94,89 @@ class Crawler:
 
     try:
       page = requests.get(url)
-      # print(page.status_code)
+      page_status = page.status_code
 
       #### TODO
       # Check status, if != 200, create validations
       soup = BeautifulSoup(page.text, 'lxml')
 
       # Title
-      # print("\n")
-      # titles = soup.find_all('title')
-      # print(f"Titles found: {len(titles)}")
-      # for title in titles:
-      #   print(f"Title: {title.get_text()}")
+      titles = soup.find_all('title')
+      titles_arr = []
+      titles_count = 0
+      if len(titles)  != 0:
+        for title in titles:
+          titles_arr.append(title.get_text())
+          titles_count += 1
 
       # Description
+      desc_arr = []
+      desc_count = 0
 
+      desc = soup.find_all("meta", {'name':'Description'})
+      if len(desc) != 0:
+        for d in desc:
+          desc_arr.append(d['content'])
+          desc_count += 1
+
+      desc_min = soup.find_all("meta", {'name':'description'})
+      if len(desc_min) != 0:
+        for dm in desc_min:
+          desc_arr.append(dm['content'])
+          desc_count += 1
+
+      # Text
+
+      # H heads
+      # h1 = []
+      # h1_count = 0
+
+      # h2 = []
+      # h2_count = 0
+
+      # h3 = []
+      # h3_count = 0
+
+      # h4 = []
+      # h4_count = 0
+
+      # h5 = []
+      # h5_count = 0
+      
+      # h6 = []
+      # h6_count = 0
+
+      # if(check_result(soup.find_all("h1"))): 
+      #   for h in check_result(soup.find_all("h1")):
+      #     h1.append(h.get_text())
+      #     h1_count += 1
+
+      # if(check_result(soup.find_all("h2"))): 
+      #   for h in check_result(soup.find_all("h2")):
+      #     h2.append(h.get_text())
+      #     h2_count += 1
+
+      # if(check_result(soup.find_all("h3"))): 
+      #   for h in check_result(soup.find_all("h3")):
+      #     h3.append(h.get_text())
+      #     h3_count += 1
+
+      # if(check_result(soup.find_all("h4"))): 
+      #   for h in check_result(soup.find_all("h4")):
+      #     h4.append(h.get_text())
+      #     h4_count += 1
+
+      # if(check_result(soup.find_all("h5"))): 
+      #   for h in check_result(soup.find_all("h5")):
+      #     h5.append(h.get_text())
+      #     h5_count += 1
+
+      # if(check_result(soup.find_all("h6"))): 
+      #   for h in check_result(soup.find_all("h6")):
+      #     h6.append(h.get_text())
+      #     h6_count += 1
+
+      # Images
 
       # Links
       links = soup.find_all('a')
@@ -127,6 +197,19 @@ class Crawler:
       
       print(f"Counter: {self.count} - URL crawled: {url}")
       self.urls_crawled.append(url)  
+
+      # OUTPUT
+      # URL, Status, Title, Title amount, Description, Description amount, 
+      # H1, H1 amount, H2, H2 amount, H3, H3 amount, H4, H4 amount, H5, H5 amount, H6, H6 amount
+      output = [
+        url, page_status,
+        titles_arr, titles_count,
+        desc_arr, desc_count,
+        # h1, h1_count, h2, h2_count, h3, h3_count,
+        # h4, h4_count, h5, h5_count, h6, h6_count,
+      ]
+      self.output.append(output)
+
     except:
       self.urls_error.append(url)
       print(f"Error crawling page: {url}")
@@ -191,17 +274,18 @@ class Crawler:
       try:
 
         # Save the rest of URL's crawled in CSV
-        # rest = self.limit_pages % self.limit_save
+        rest = self.limit_pages % self.limit_save
+        if rest != 0:
         
-        # urls_rest = pd.DataFrame(self.urls_crawled[(self.count_save * self.limit_pages) + rest : self.count + 1]) 
-        # print(f"{(self.count_save - 1) * self.limit_save} : {self.count}")
+          urls_rest = pd.DataFrame(self.urls_crawled[((self.count_save - 1) * self.limit_save)  : self.count + 1]) 
+          print(f"{((self.count_save - 1) * self.limit_save) } : {self.count + 1}")
 
-        # print("DATAFRAME - SELECTION")
-        # print(self.urls_crawled[(self.count_save - 1) * self.limit_save : self.count])
-        # print("\n")
+          print("DATAFRAME - SELECTION")
+          print(self.urls_crawled[((self.count_save - 1) * self.limit_save)  : self.count + 1])
+          print("\n")
 
-        # urls_crawled.to_csv(f'output/crawled-{self.count_save}.csv', index=False)
-        # print(f"URL's crawled saved - Total: {len(urls_crawled)} - Count_save: {self.count_save}")
+          urls_rest.to_csv(f'output/crawled-{self.count_save}.csv', index=False)
+          print(f"URL's crawled saved - Total: {len(urls_rest)} - Count_save: {self.count_save}")
 
 
 
@@ -220,11 +304,17 @@ class Crawler:
         urls_error.to_csv('output/errors-total.csv', index=False)
         print(f"URL's with ERROR saved - Total: {len(urls_error)}")
 
-        # Save ALL URL's found in CSV
+        # Save ALL URL's in CSV
         total_urls = list(self.urls)
         total_urls_df = pd.DataFrame(total_urls)  
-        total_urls_df.to_csv('output/urls-total.csv', index=False)
+        total_urls_df.to_csv('output/total-urls.csv', index=False)
         print(f"All URL's found saved - Total: {len(total_urls)}")
+
+
+        # Save OUTPUTS in CSV
+        total_output_df = pd.DataFrame(self.output)  
+        total_output_df.to_csv('output/outputs.csv', index=False)
+        print(f"All OUTPUTS saved - Total: {len(total_output_df)}")
 
         self.count_save += 1
       
