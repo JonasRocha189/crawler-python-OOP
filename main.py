@@ -13,7 +13,7 @@ class Crawler:
   def __init__(self):
     # Custom the crawler 
     self.baseURL = 'https://www.bumper.com'
-    self.limit_pages = 100
+    self.limit_pages = 105
     self.limit_save = 10
 
     self.urls = set()
@@ -144,15 +144,14 @@ class Crawler:
       # self.crawl(self.baseURL) ### check the homepage
 
     # Output 
-    if self.count > self.limit_save and self.count > self.count_save * self.limit_save:
+    if self.count > self.limit_save - 1 and self.count > (self.count_save * self.limit_save) - 1:
       # print(f"self_count:{self.count} - limit_save:{self.limit_save} - count_save: {self.count_save} ") 
 
       try:
-        if self.count_save == 1:
-          urls_crawled = pd.DataFrame(self.urls_crawled[(self.count_save - 1) * self.limit_save + 1 : self.count])  
-        else:
-          urls_crawled = pd.DataFrame(self.urls_crawled[(self.count_save - 1) * self.limit_save + 1 : self.count]) 
-        print(f"{(self.count_save - 1) * self.limit_save + 1} : {self.count}")
+        
+        urls_crawled = pd.DataFrame(self.urls_crawled[(self.count_save - 1) * self.limit_save : self.count]) 
+        print(f"{(self.count_save - 1) * self.limit_save} : {self.count}")
+
         print("DATAFRAME - SELECTION")
         print(self.urls_crawled[(self.count_save - 1) * self.limit_save : self.count])
         print("\n")
@@ -190,17 +189,42 @@ class Crawler:
 
       # Output
       try:
+
+        # Save the rest of URL's crawled in CSV
+        # rest = self.limit_pages % self.limit_save
+        
+        # urls_rest = pd.DataFrame(self.urls_crawled[(self.count_save * self.limit_pages) + rest : self.count + 1]) 
+        # print(f"{(self.count_save - 1) * self.limit_save} : {self.count}")
+
+        # print("DATAFRAME - SELECTION")
+        # print(self.urls_crawled[(self.count_save - 1) * self.limit_save : self.count])
+        # print("\n")
+
+        # urls_crawled.to_csv(f'output/crawled-{self.count_save}.csv', index=False)
+        # print(f"URL's crawled saved - Total: {len(urls_crawled)} - Count_save: {self.count_save}")
+
+
+
+        # Save URL's crawled in CSV
         urls_crawled = pd.DataFrame(self.urls_crawled)  
         urls_crawled.to_csv('output/crawled-total.csv', index=False)
         print(f"URL's crawled saved - Total: {len(urls_crawled)}")
 
+        # Save URL's NOT crawled in CSV
         urls_not_crawled = pd.DataFrame(self.urls_not_crawled)  
         urls_not_crawled.to_csv('output/not_crawled-total.csv', index=False)
         print(f"URL's NOT crawled saved - Total: {len(urls_not_crawled)}")
 
+        # Save URL's with ERROR in CSV
         urls_error = pd.DataFrame(self.urls_error)  
         urls_error.to_csv('output/errors-total.csv', index=False)
         print(f"URL's with ERROR saved - Total: {len(urls_error)}")
+
+        # Save ALL URL's found in CSV
+        total_urls = list(self.urls)
+        total_urls_df = pd.DataFrame(total_urls)  
+        total_urls_df.to_csv('output/urls-total.csv', index=False)
+        print(f"All URL's found saved - Total: {len(total_urls)}")
 
         self.count_save += 1
       
