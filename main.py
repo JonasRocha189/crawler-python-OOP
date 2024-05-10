@@ -201,6 +201,8 @@ class Crawler:
       # OUTPUT
       # URL, Status, Title, Title amount, Description, Description amount, 
       # H1, H1 amount, H2, H2 amount, H3, H3 amount, H4, H4 amount, H5, H5 amount, H6, H6 amount
+      # P text, links (inside content) ancor, url
+      # Images source, images size, image alt
       output = [
         url, page_status,
         titles_arr, titles_count,
