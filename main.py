@@ -4,6 +4,10 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import pandas as pd
 
+# Utils libs
+import os
+import datetime
+
 # Custom the Python recursion limit
 from sys import setrecursionlimit
 setrecursionlimit(100000)
@@ -220,9 +224,20 @@ class Crawler:
     self.start()
 
   ##
+  # Save DataFrames in CSV files
+  #
+  def save_df(self, df, name_file):
+    df.to_csv(f'output/{date.year}-{date.month}-{date.day}/{name_file}.csv', index=False)
+  
+  ##
   # Start the script and control the flux
   #
   def start(self):
+    
+    # Create a new folder per day 
+    date = datetime.datetime.now()
+    if os.path.isdir(f"./output/{date.year}-{date.month}-{date.day}") == False:
+      os.mkdir(f"./output/{date.year}-{date.month}-{date.day}")
 
     if len(self.urls) == 0: 
       self.urls.add(self.baseURL)
@@ -234,15 +249,15 @@ class Crawler:
 
       try:
         
-        urls_crawled = pd.DataFrame(self.urls_crawled[(self.count_save - 1) * self.limit_save : self.count]) 
+        output = pd.DataFrame(self.output[(self.count_save - 1) * self.limit_save : self.count]) 
         print(f"{(self.count_save - 1) * self.limit_save} : {self.count}")
 
         print("DATAFRAME - SELECTION")
-        print(self.urls_crawled[(self.count_save - 1) * self.limit_save : self.count])
+        print(self.output[(self.count_save - 1) * self.limit_save : self.count])
         print("\n")
 
-        urls_crawled.to_csv(f'output/crawled-{self.count_save}.csv', index=False)
-        print(f"URL's crawled saved - Total: {len(urls_crawled)} - Count_save: {self.count_save}")
+        output.to_csv(f'output/{date.year}-{date.month}-{date.day}/crawled-{self.count_save}.csv', index=False)
+        print(f"URL's crawled saved - Total: {len(output)} - Count_save: {self.count_save}")
 
         self.count_save += 1
       
@@ -279,43 +294,43 @@ class Crawler:
         rest = self.limit_pages % self.limit_save
         if rest != 0:
         
-          urls_rest = pd.DataFrame(self.urls_crawled[((self.count_save - 1) * self.limit_save)  : self.count + 1]) 
+          output_rest = pd.DataFrame(self.output[((self.count_save - 1) * self.limit_save)  : self.count + 1]) 
           print(f"{((self.count_save - 1) * self.limit_save) } : {self.count + 1}")
 
           print("DATAFRAME - SELECTION")
-          print(self.urls_crawled[((self.count_save - 1) * self.limit_save)  : self.count + 1])
+          print(self.output[((self.count_save - 1) * self.limit_save)  : self.count + 1])
           print("\n")
 
-          urls_rest.to_csv(f'output/crawled-{self.count_save}.csv', index=False)
-          print(f"URL's crawled saved - Total: {len(urls_rest)} - Count_save: {self.count_save}")
+          output_rest.to_csv(f'output/{date.year}-{date.month}-{date.day}/crawled-{self.count_save}.csv', index=False)
+          print(f"URL's crawled saved - Total: {len(output_rest)} - Count_save: {self.count_save}")
 
 
 
         # Save URL's crawled in CSV
         urls_crawled = pd.DataFrame(self.urls_crawled)  
-        urls_crawled.to_csv('output/crawled-total.csv', index=False)
+        urls_crawled.to_csv(f'output/{date.year}-{date.month}-{date.day}/crawled-total.csv', index=False)
         print(f"URL's crawled saved - Total: {len(urls_crawled)}")
 
         # Save URL's NOT crawled in CSV
         urls_not_crawled = pd.DataFrame(self.urls_not_crawled)  
-        urls_not_crawled.to_csv('output/not_crawled-total.csv', index=False)
+        urls_not_crawled.to_csv(f'output/{date.year}-{date.month}-{date.day}/not_crawled-total.csv', index=False)
         print(f"URL's NOT crawled saved - Total: {len(urls_not_crawled)}")
 
         # Save URL's with ERROR in CSV
         urls_error = pd.DataFrame(self.urls_error)  
-        urls_error.to_csv('output/errors-total.csv', index=False)
+        urls_error.to_csv(f'output/{date.year}-{date.month}-{date.day}/errors-total.csv', index=False)
         print(f"URL's with ERROR saved - Total: {len(urls_error)}")
 
         # Save ALL URL's in CSV
         total_urls = list(self.urls)
         total_urls_df = pd.DataFrame(total_urls)  
-        total_urls_df.to_csv('output/total-urls.csv', index=False)
+        total_urls_df.to_csv(f'output/{date.year}-{date.month}-{date.day}/total-urls.csv', index=False)
         print(f"All URL's found saved - Total: {len(total_urls)}")
 
 
         # Save OUTPUTS in CSV
         total_output_df = pd.DataFrame(self.output)  
-        total_output_df.to_csv('output/outputs.csv', index=False)
+        total_output_df.to_csv(f'output/{date.year}-{date.month}-{date.day}/outputs.csv', index=False)
         print(f"All OUTPUTS saved - Total: {len(total_output_df)}")
 
         self.count_save += 1
