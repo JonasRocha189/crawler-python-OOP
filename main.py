@@ -30,6 +30,8 @@ class Crawler:
     self.count = 0
     self.count_save = 1
 
+    self.date = datetime.datetime.now()
+
     self.start()
 
 
@@ -130,72 +132,85 @@ class Crawler:
           desc_count += 1
 
       # Text
+      body = soup.find('main')
+      text = body.get_text()
 
-      # H heads
-      # h1 = []
-      # h1_count = 0
+      # 
+      #  H heads
+      #
 
-      # h2 = []
-      # h2_count = 0
+      # H1
+      h1 = []
+      h1_count = 0
 
-      # h3 = []
-      # h3_count = 0
+      h1_soup = soup.find_all("h1")
+      if h1_soup != 0 : 
+        for h in h1_soup:
+          h1.append(h.get_text())
+          h1_count += 1
 
-      # h4 = []
-      # h4_count = 0
+      # H2
+      h2 = []
+      h2_count = 0
 
-      # h5 = []
-      # h5_count = 0
+      h2_soup = soup.find_all("h2")
+      if h2_soup != 0 : 
+        for h in h2_soup:
+          h2.append(h.get_text())
+          h2_count += 1
+
+      # H3
+      h3 = []
+      h3_count = 0
+
+      h3_soup = soup.find_all("h3")
+      if h3_soup != 0 : 
+        for h in h3_soup:
+          h3.append(h.get_text())
+          h3_count += 1
+
+      # H4
+      h4 = []
+      h4_count = 0
+
+      h4_soup = soup.find_all("h4")
+      if h4_soup != 0 : 
+        for h in h4_soup:
+          h4.append(h.get_text())
+          h4_count += 1
+
+      # H5
+      h5 = []
+      h5_count = 0
+
+      h5_soup = soup.find_all("h5")
+      if h5_soup != 0 : 
+        for h in h5_soup:
+          h5.append(h.get_text())
+          h5_count += 1
+
+      # H6
+      h6 = []
+      h6_count = 0
+
+      h6_soup = soup.find_all("h6")
+      if h6_soup != 0 : 
+        for h in h6_soup:
+          h6.append(h.get_text())
+          h6_count += 1
+
       
-      # h6 = []
-      # h6_count = 0
-
-      # if(check_result(soup.find_all("h1"))): 
-      #   for h in check_result(soup.find_all("h1")):
-      #     h1.append(h.get_text())
-      #     h1_count += 1
-
-      # if(check_result(soup.find_all("h2"))): 
-      #   for h in check_result(soup.find_all("h2")):
-      #     h2.append(h.get_text())
-      #     h2_count += 1
-
-      # if(check_result(soup.find_all("h3"))): 
-      #   for h in check_result(soup.find_all("h3")):
-      #     h3.append(h.get_text())
-      #     h3_count += 1
-
-      # if(check_result(soup.find_all("h4"))): 
-      #   for h in check_result(soup.find_all("h4")):
-      #     h4.append(h.get_text())
-      #     h4_count += 1
-
-      # if(check_result(soup.find_all("h5"))): 
-      #   for h in check_result(soup.find_all("h5")):
-      #     h5.append(h.get_text())
-      #     h5_count += 1
-
-      # if(check_result(soup.find_all("h6"))): 
-      #   for h in check_result(soup.find_all("h6")):
-      #     h6.append(h.get_text())
-      #     h6_count += 1
 
       # Images
 
       # Links
-      links = soup.find_all('a')
+      links = []
+      links_soup = soup.find_all('a')
       # print(f"Links found: {len(links)}")
 
-      for link in links:
-        # remove telephone link
-        # if link.get('href').find('tel:'):
-        #   link.extract()
-        # # remove mailto link
-        # if link.get('href').find('mailto:'):
-        #     link.extract()
-
+      for link in links_soup:
         if 'href' in link.attrs:
-          # print(f"Ancor Text: {link.text} | Link: {link.attrs['href']}" )
+          links.append([link.text, link.attrs['href']] )
           self.checkUrl(link.attrs['href'])
 
       
@@ -205,14 +220,15 @@ class Crawler:
       # OUTPUT
       # URL, Status, Title, Title amount, Description, Description amount, 
       # H1, H1 amount, H2, H2 amount, H3, H3 amount, H4, H4 amount, H5, H5 amount, H6, H6 amount
-      # P text, links (inside content) ancor, url
+      # Conten texts, links (inside body) ancor, url
       # Images source, images size, image alt
       output = [
         url, page_status,
         titles_arr, titles_count,
         desc_arr, desc_count,
-        # h1, h1_count, h2, h2_count, h3, h3_count,
-        # h4, h4_count, h5, h5_count, h6, h6_count,
+        h1, h1_count, h2, h2_count, h3, h3_count,
+        h4, h4_count, h5, h5_count, h6, h6_count,
+        text
       ]
       self.output.append(output)
 
@@ -227,17 +243,21 @@ class Crawler:
   # Save DataFrames in CSV files
   #
   def save_df(self, df, name_file):
-    df.to_csv(f'output/{date.year}-{date.month}-{date.day}/{name_file}.csv', index=False)
+    df.to_csv(f'output/{self.date.year}-{self.date.month}-{self.date.day}/{name_file}.csv', index=False)
   
+
+
   ##
   # Start the script and control the flux
   #
   def start(self):
     
     # Create a new folder per day 
-    date = datetime.datetime.now()
-    if os.path.isdir(f"./output/{date.year}-{date.month}-{date.day}") == False:
-      os.mkdir(f"./output/{date.year}-{date.month}-{date.day}")
+    if os.path.isdir(f"./output") == False:
+      os.mkdir(f"./output")
+    
+    if os.path.isdir(f"./output/{self.date.year}-{self.date.month}-{self.date.day}") == False:
+      os.mkdir(f"./output/{self.date.year}-{self.date.month}-{self.date.day}")
 
     if len(self.urls) == 0: 
       self.urls.add(self.baseURL)
@@ -250,13 +270,8 @@ class Crawler:
       try:
         
         output = pd.DataFrame(self.output[(self.count_save - 1) * self.limit_save : self.count]) 
-        print(f"{(self.count_save - 1) * self.limit_save} : {self.count}")
-
-        print("DATAFRAME - SELECTION")
-        print(self.output[(self.count_save - 1) * self.limit_save : self.count])
-        print("\n")
-
-        output.to_csv(f'output/{date.year}-{date.month}-{date.day}/crawled-{self.count_save}.csv', index=False)
+        file_name = f'crawled-{self.count_save}'
+        self.save_df(output, file_name)
         print(f"URL's crawled saved - Total: {len(output)} - Count_save: {self.count_save}")
 
         self.count_save += 1
@@ -270,67 +285,48 @@ class Crawler:
       print("///////////////////////////")
       print("End of the crawler")
 
-      ### Check Crawled URL's
-      # print(f"\n\nURLS Crawled({len(self.urls_crawled)}):")
-      # for l in self.urls_crawled:
-      #   print(l)
-
-      # print(f"\n\nURLS NOT CRAWLED ({len(self.urls_not_crawled)}):")
-      # for n in self.urls_not_crawled:
-      #   print(n)  
-
-      # print(f"\n\nLINKS NOT FOUND ({len(self.urls)}):")
-      # for n in self.urls:
-      #   print(n) 
-
-      # print(f"\n\nURL's WITH ERROR ({len(self.urls_error)}):")
-      # for n in self.urls:
-      #   print(n)  
-
       # Output
       try:
 
         # Save the rest of URL's crawled in CSV
         rest = self.limit_pages % self.limit_save
-        if rest != 0:
-        
-          output_rest = pd.DataFrame(self.output[((self.count_save - 1) * self.limit_save)  : self.count + 1]) 
-          print(f"{((self.count_save - 1) * self.limit_save) } : {self.count + 1}")
-
-          print("DATAFRAME - SELECTION")
-          print(self.output[((self.count_save - 1) * self.limit_save)  : self.count + 1])
-          print("\n")
-
-          output_rest.to_csv(f'output/{date.year}-{date.month}-{date.day}/crawled-{self.count_save}.csv', index=False)
+        if rest != 0:        
+          output_rest = pd.DataFrame(self.output[((self.count_save - 1) * self.limit_save)  : self.count + 1])           
+          file_name_rest = f'crawled-{self.count_save}'
+          self.save_df(output_rest, file_name_rest)
           print(f"URL's crawled saved - Total: {len(output_rest)} - Count_save: {self.count_save}")
-
 
 
         # Save URL's crawled in CSV
         urls_crawled = pd.DataFrame(self.urls_crawled)  
-        urls_crawled.to_csv(f'output/{date.year}-{date.month}-{date.day}/crawled-total.csv', index=False)
+        file_name_urls_crawled = f'crawled-total'
+        self.save_df(urls_crawled,file_name_urls_crawled )
         print(f"URL's crawled saved - Total: {len(urls_crawled)}")
 
         # Save URL's NOT crawled in CSV
         urls_not_crawled = pd.DataFrame(self.urls_not_crawled)  
-        urls_not_crawled.to_csv(f'output/{date.year}-{date.month}-{date.day}/not_crawled-total.csv', index=False)
+        file_name_urls_not_crawled = f'not_crawled-total'
+        self.save_df(urls_not_crawled, file_name_urls_not_crawled)
         print(f"URL's NOT crawled saved - Total: {len(urls_not_crawled)}")
 
         # Save URL's with ERROR in CSV
         urls_error = pd.DataFrame(self.urls_error)  
-        urls_error.to_csv(f'output/{date.year}-{date.month}-{date.day}/errors-total.csv', index=False)
+        filne_name_urls_error = f'errors-total'
+        self.save_df(urls_error, filne_name_urls_error)
         print(f"URL's with ERROR saved - Total: {len(urls_error)}")
 
         # Save ALL URL's in CSV
         total_urls = list(self.urls)
         total_urls_df = pd.DataFrame(total_urls)  
-        total_urls_df.to_csv(f'output/{date.year}-{date.month}-{date.day}/total-urls.csv', index=False)
+        file_name_total_urls_df = f'total-urls'
+        self.save_df(total_urls_df, file_name_total_urls_df)
         print(f"All URL's found saved - Total: {len(total_urls)}")
 
 
         # Save OUTPUTS in CSV
         total_output_df = pd.DataFrame(self.output)  
-        total_output_df.to_csv(f'output/{date.year}-{date.month}-{date.day}/outputs.csv', index=False)
+        filen_name_total_output_df = f'outputs'
+        self.save_df(total_output_df, filen_name_total_output_df)
         print(f"All OUTPUTS saved - Total: {len(total_output_df)}")
 
         self.count_save += 1
