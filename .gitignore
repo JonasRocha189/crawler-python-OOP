@@ -1,2 +1,5 @@
 /.venv
+/output
 notes.txt
+testing.ipynb
+urls-found.csv

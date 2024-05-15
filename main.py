@@ -7,6 +7,7 @@ import pandas as pd
 # Utils libs
 import os
 import datetime
+import time
 
 # Custom the Python recursion limit
 from sys import setrecursionlimit
@@ -17,8 +18,8 @@ class Crawler:
   def __init__(self):
     # Custom the crawler 
     self.baseURL = 'https://www.bumper.com'
-    self.limit_pages = 105
-    self.limit_save = 10
+    self.limit_pages = 1000
+    self.limit_save = 200
 
     self.urls = set()
     self.urls_not_crawled = set()
@@ -31,6 +32,13 @@ class Crawler:
     self.count_save = 1
 
     self.date = datetime.datetime.now()
+
+
+    self.urls_to_exclude = []
+    self.folder = f"./output/{self.date.year}-{self.date.month}-{self.date.day}"
+    
+    self.start_crawl = time.time()
+    self.total_urls_crawled = []
 
     self.start()
 
@@ -214,7 +222,7 @@ class Crawler:
           self.checkUrl(link.attrs['href'])
 
       
-      print(f"Counter: {self.count} - URL crawled: {url}")
+      self.log(f"Counter: {self.count} - URL crawled: {url}")
       self.urls_crawled.append(url)  
 
       # OUTPUT
@@ -228,13 +236,14 @@ class Crawler:
         desc_arr, desc_count,
         h1, h1_count, h2, h2_count, h3, h3_count,
         h4, h4_count, h5, h5_count, h6, h6_count,
-        text
+        text,
+        links
       ]
       self.output.append(output)
 
     except:
       self.urls_error.append(url)
-      print(f"Error crawling page: {url}")
+      self.log(f"Error crawling page: {url}")
     
     self.count += 1    
     self.start()
@@ -243,101 +252,165 @@ class Crawler:
   # Save DataFrames in CSV files
   #
   def save_df(self, df, name_file):
-    df.to_csv(f'output/{self.date.year}-{self.date.month}-{self.date.day}/{name_file}.csv', index=False)
+    df.to_csv(f'{self.folder}/{name_file}.csv', index=False)
   
+
+  ##
+  # Save informations about the crawl
+  #
+  def log(self, log):  
+    file = f"{self.folder}/log.txt"
+
+    # create a file
+    if not os.path.exists(file):
+      open(file, 'x')
+
+    # Save the info
+    with open(file, 'a') as arq:
+      arq.write("")
+      arq.write(f"{log} \n")
+      arq.close()
 
 
   ##
   # Start the script and control the flux
   #
-  def start(self):
+  def start(self):    
     
     # Create a new folder per day 
     if os.path.isdir(f"./output") == False:
       os.mkdir(f"./output")
     
-    if os.path.isdir(f"./output/{self.date.year}-{self.date.month}-{self.date.day}") == False:
-      os.mkdir(f"./output/{self.date.year}-{self.date.month}-{self.date.day}")
+    # Check if there is a folder for today
+    if os.path.isdir(f"{self.folder}") == False:
+      os.mkdir(f"{self.folder}")
 
+    # Check if there is no URL in the set and add the baseURL if not
     if len(self.urls) == 0: 
       self.urls.add(self.baseURL)
       # self.crawl(self.baseURL) ### check the homepage
 
-    # Output 
-    if self.count > self.limit_save - 1 and self.count > (self.count_save * self.limit_save) - 1:
-      # print(f"self_count:{self.count} - limit_save:{self.limit_save} - count_save: {self.count_save} ") 
+      # Create a folder for each crawl
+      folders = len(os.listdir(f'{self.folder}/'))
+      if folders == 0 : 
+        self.folder = f"{self.folder}/1"
+        os.mkdir(f"{self.folder}")
+      else:
+        self.folder = f"{self.folder}/{folders + 1}"
+        os.mkdir(f"{self.folder}")
 
-      try:
+      print("//////////")
+      print("Crawler started")
+      print(f"URL: {self.baseURL}")
+
+      if os.path.exists('./urls-crawled.csv'):
+        total_urls_crawled_df = pd.read_csv('./urls-crawled.csv')
+        self.total_urls_crawled = total_urls_crawled_df.values.tolist()
+
+
+    # Save into small files if more than 1k URL's to scrape else save in just one
+    if self.limit_pages > 1000:
+
+      # Output 
+      if self.count > self.limit_save - 1 and self.count > (self.count_save * self.limit_save) - 1:
+        # print(f"self_count:{self.count} - limit_save:{self.limit_save} - count_save: {self.count_save} ") 
+
+        try:
+          
+          output = pd.DataFrame(self.output[(self.count_save - 1) * self.limit_save : self.count]) 
+          file_name = f'crawled-{self.count_save}'
+          self.save_df(output, file_name)
+          self.log(f"URL's crawled saved - Total: {len(output)} - Count_save: {self.count_save}")
+
+          self.count_save += 1
         
-        output = pd.DataFrame(self.output[(self.count_save - 1) * self.limit_save : self.count]) 
-        file_name = f'crawled-{self.count_save}'
-        self.save_df(output, file_name)
-        print(f"URL's crawled saved - Total: {len(output)} - Count_save: {self.count_save}")
-
-        self.count_save += 1
-      
-      except Exception as error:
-        print(f"Error saving files: {error}")
+        except Exception as error:
+          self.log(f"Error saving files: {error}")
 
       
     # End of the Crawler
     if self.count >= self.limit_pages:
+      end = time.time()
       print("///////////////////////////")
       print("End of the crawler")
+      print(f"Duration: {round(end - self.start_crawl, 2)} secounds")
 
       # Output
       try:
 
-        # Save the rest of URL's crawled in CSV
-        rest = self.limit_pages % self.limit_save
-        if rest != 0:        
-          output_rest = pd.DataFrame(self.output[((self.count_save - 1) * self.limit_save)  : self.count + 1])           
-          file_name_rest = f'crawled-{self.count_save}'
-          self.save_df(output_rest, file_name_rest)
-          print(f"URL's crawled saved - Total: {len(output_rest)} - Count_save: {self.count_save}")
+        # Save into small files if more than 1k URL's to scrape else save in just one
+        if self.limit_pages > 1000 :
+          # Save the rest of URL's crawled in CSV
+          rest = self.limit_pages % self.limit_save
+          if rest != 0:        
+            output_rest = pd.DataFrame(self.output[((self.count_save - 1) * self.limit_save)  : self.count + 1])           
+            file_name_rest = f'crawled-{self.count_save}'
+            self.save_df(output_rest, file_name_rest)
+            self.log(f"URL's crawled saved - Total: {len(output_rest)} - Count_save: {self.count_save}")
+          
 
+        # Save into small files if more than 1k URL's to scrape else save in just one
+        else:
+          # Save URL's crawled in CSV
+          urls_crawled = pd.DataFrame(self.urls_crawled)  
+          file_name_urls_crawled = f'crawled-total'
+          self.save_df(urls_crawled,file_name_urls_crawled )
+          self.log(f"URL's crawled saved - Total: {len(urls_crawled)}")
 
-        # Save URL's crawled in CSV
-        urls_crawled = pd.DataFrame(self.urls_crawled)  
-        file_name_urls_crawled = f'crawled-total'
-        self.save_df(urls_crawled,file_name_urls_crawled )
-        print(f"URL's crawled saved - Total: {len(urls_crawled)}")
+          # Save URL's NOT crawled in CSV
+          urls_not_crawled = pd.DataFrame(self.urls_not_crawled)  
+          file_name_urls_not_crawled = f'not_crawled-total'
+          self.save_df(urls_not_crawled, file_name_urls_not_crawled)
+          self.log(f"URL's NOT crawled saved - Total: {len(urls_not_crawled)}")
 
-        # Save URL's NOT crawled in CSV
-        urls_not_crawled = pd.DataFrame(self.urls_not_crawled)  
-        file_name_urls_not_crawled = f'not_crawled-total'
-        self.save_df(urls_not_crawled, file_name_urls_not_crawled)
-        print(f"URL's NOT crawled saved - Total: {len(urls_not_crawled)}")
+          # Save URL's with ERROR in CSV
+          urls_error = pd.DataFrame(self.urls_error)  
+          filne_name_urls_error = f'errors-total'
+          self.save_df(urls_error, filne_name_urls_error)
+          self.log(f"URL's with ERROR saved - Total: {len(urls_error)}")
 
-        # Save URL's with ERROR in CSV
-        urls_error = pd.DataFrame(self.urls_error)  
-        filne_name_urls_error = f'errors-total'
-        self.save_df(urls_error, filne_name_urls_error)
-        print(f"URL's with ERROR saved - Total: {len(urls_error)}")
+          # Save ALL URL's in CSV
+          total_urls = list(self.urls)
+          total_urls_df = pd.DataFrame(total_urls)  
+          file_name_total_urls_df = f'total-urls'
+          self.save_df(total_urls_df, file_name_total_urls_df)
+          self.log(f"All URL's found saved - Total: {len(total_urls)}")
 
-        # Save ALL URL's in CSV
-        total_urls = list(self.urls)
-        total_urls_df = pd.DataFrame(total_urls)  
-        file_name_total_urls_df = f'total-urls'
-        self.save_df(total_urls_df, file_name_total_urls_df)
-        print(f"All URL's found saved - Total: {len(total_urls)}")
+          # Save OUTPUTS in CSV
+          total_output_df = pd.DataFrame(self.output)  
+          filen_name_total_output_df = f'outputs'
+          self.save_df(total_output_df, filen_name_total_output_df)
+          self.log(f"All OUTPUTS saved - Total: {len(total_output_df)}")
 
+          ############
 
-        # Save OUTPUTS in CSV
-        total_output_df = pd.DataFrame(self.output)  
-        filen_name_total_output_df = f'outputs'
-        self.save_df(total_output_df, filen_name_total_output_df)
-        print(f"All OUTPUTS saved - Total: {len(total_output_df)}")
+          # Save the main output - URL's FOUND
+          file = './urls-total.csv'
+          if not os.path.exists(file):
+            total_urls_df.to_csv(file, index=False)
+          else:
+            total_urls_df.to_csv(file, mode='a', index=False)
 
+          # Save the main output - URL's CRAWLED
+          file = './urls-crawled.csv'
+          if not os.path.exists(file):
+            urls_crawled.to_csv(file, index=False)
+          else:
+            urls_crawled.to_csv(file, mode='a', index=False)
+            
         self.count_save += 1
       
       except Exception as error:
-        print(f"Error saving files: {error}")
+        self.log(f"Error saving files: {error}")
 
     else:
-      newUrl = list(self.urls)
-      self.crawl(newUrl[self.count])
+      newUrl = list(self.urls)   
 
+      # Check URl was crawled before and not seted with error or is seted to NOT be crawled
+      if newUrl[self.count] not in self.urls_crawled and newUrl[self.count] not in self.urls_error and newUrl[self.count] not in self.total_urls_crawled:
+        self.crawl(newUrl[self.count])
+      else:
+        self.crawl(newUrl[self.count+1])
   
 
 if __name__ == "__main__":
